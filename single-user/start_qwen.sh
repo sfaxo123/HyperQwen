@@ -204,6 +204,14 @@ elif [ "$CTX" = "long" ]; then
   MAX_LEN=${MAX_LEN:-150000}
   DRAFT_TOKENS=${DRAFT_TOKENS:-3}
   ATTN_ARGS="--kv-cache-dtype fp8"
+  # HOM-716 (2026-10-01, 3090 single card): the 0.30.0 boot measured the mtp
+  # 150k fp8 KV pool at 12.25 GiB alongside 14.71 GiB of weights — 27.0 GiB,
+  # which does not fit a 24 GiB card. Pin the pool to 4.56 GiB so total
+  # memory is ~14.71 + 4.56 + ~1.5 (transient + DeltaNet) ≈ 20.8 GiB, leaving
+  # ~3.2 GiB headroom. fp8 per-token at ~60 KB/token => ~77k pool tokens, which
+  # still covers 150k max_model_len at 4 slots (the per-request KV budget is
+  # max_model_len x 1, not the pool size). Export KV_MEM= to override.
+  KV_MEM=${KV_MEM-4890212864}
 fi
 if [ "$SPEC" = "dflash2" ] && [ "$CTX" = "long" ]; then
   # int8 per-token-head KV on the Triton backend: the same 5.2 GiB pool holds 136,429
