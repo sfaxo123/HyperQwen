@@ -822,7 +822,18 @@ resolve_vllm_key
 resolve_bind_host
 
 exec venv/bin/vllm serve "$MODEL" \
-  --served-model-name qwen3.8-27b \
+  # Two names on purpose (homelab tweak afa139f, re-applied on the e1459c7
+  # homelab branch): `3090` is the OWNER-AGNOSTIC handle the llama-swap pool
+  # carries as an alias on whichever entry is pinned, so a caller asking for
+  # `3090` gets the 3090's current text lane no matter which of the two
+  # mutually exclusive services owns the card. That lets the gateway follow a
+  # lane flip by rewriting ONE api_base line instead of a model name on every
+  # alias row. Do not remove it: without it, 3090-gateway-resolve.sh has to
+  # rewrite seven rows and the aliases it does not know about (aux-tooling,
+  # youtube-summarize, reddit-enrich) keep pointing at a dead port and fall
+  # silently to the 5090 -- the 2026-08-30 incident this mechanism prevents.
+  # `qwen3.8-27b` stays first: bench and probe scripts use it.
+  --served-model-name qwen3.8-27b 3090 \
   --host $BIND_HOST --port $PORT \
   --gpu-memory-utilization $GPU_UTIL \
   --max-model-len $MAX_LEN \
